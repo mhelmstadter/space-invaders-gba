@@ -4,10 +4,12 @@
 
 // Variables
 int lives;
+int kills;
 
 // Sprite Variables
 PLAYER player;
 ENEMY enemies[ENEMYCOUNT];
+BULLET playerBullets[BULLETCOUNT];
 
 
 // Shadow OAM
@@ -16,6 +18,9 @@ OBJ_ATTR shadowOAM[128];
 void initGame() {
 	initPlayer();
 	initEnemies();
+	initPlayerBullets();
+	lives = 5;
+	kills = ENEMYCOUNT;
 }
 
 void initPlayer() {
@@ -50,7 +55,7 @@ void initEnemies() {
 			// Just update the col, state remains same
 			enemies[i].col = enemies[i - 1].col + 31;
 		}
-		
+		// Give each enemy sprite its initial, default values
 		enemies[i].row = row;
 		enemies[i].rdel = 2;
 		enemies[i].cdel = -1;
@@ -64,6 +69,18 @@ void initEnemies() {
 	}
 }
 
+void initPlayerBullets() {
+	// Give each bullet its initial, default values
+	for (int i = 0; i < BULLETCOUNT; i++) {
+		playerBullets[i].height = 8;
+		playerBullets[i].width = 8;
+		playerBullets[i].row = -playerBullets[i].height;
+		playerBullets[i].col = 0;
+		playerBullets[i].rdel = -2;
+		playerBullets[i].active = 0;
+	}
+}
+
 void drawGame() {
 	// Draw Player
 	drawPlayer();
@@ -74,6 +91,13 @@ void drawGame() {
 		// Index to use in shadowOAM
 		drawEnemy(e, i + 6);
 	}
+
+	// Draw player bullets
+	for (int i = 0; i < BULLETCOUNT; i++) {
+		BULLET *b = &playerBullets[i];
+		drawBullet(b, i + 1);
+	}
+
 }
 
 void drawPlayer() {
@@ -94,6 +118,17 @@ void drawEnemy(ENEMY* e, int index) {
 	}
 }
 
+void drawBullet(BULLET* b, int index) {
+
+	if (b->active) {
+		shadowOAM[index].attr0 = b->row | ATTR0_4BPP | ATTR0_SQUARE;
+		shadowOAM[index].attr1 = b->col | ATTR1_TINY;
+		shadowOAM[index].attr2 = ATTR2_PALROW(0) | ATTR2_TILEID(0,4);
+	} else {
+		shadowOAM[index].attr0 = ATTR0_HIDE;
+	}
+}
+
 // Updates the game
 void updateGame() {
 	// Update the player
@@ -102,6 +137,11 @@ void updateGame() {
 	for (int i = 0; i < ENEMYCOUNT; i++) {
 		ENEMY *e = &enemies[i];
 		updateEnemy(e);
+	}
+	// Update bullets
+	for (int i = 0; i < BULLETCOUNT; i++) {
+		BULLET *b = &playerBullets[i];
+		updateBullet(b);
 	}
 }
 
@@ -112,6 +152,28 @@ void updatePlayer() {
 
 	if (BUTTON_HELD(BUTTON_LEFT) && player.col > 2) {
 		player.col--;
+	}
+
+	// only shoot every ~20 frames
+	if (BUTTON_PRESSED(BUTTON_A) && player.bulletTimer >= 20) {
+		shoot();
+		player.bulletTimer = 0;
+	}
+
+	player.bulletTimer++;
+
+}
+
+void shoot() {
+
+	for (int i = 0; i < BULLETCOUNT; i++) {
+
+		if (!playerBullets[i].active) {
+			playerBullets[i].row = player.row;
+			playerBullets[i].col = player.col + (player.width / 2) + (playerBullets[i].width / 2) - 7;
+			playerBullets[i].active = 1;
+			break;
+		}
 	}
 }
 
@@ -137,4 +199,21 @@ void updateEnemy(ENEMY* e) {
 	}
 
 	e->col += e->cdel;
+
+	for (int i = 0; i < BULLETCOUNT; i++) {
+		if (collision(playerBullets[i].row, playerBullets[i].col, playerBullets[i].height, playerBullets[i].width, e->row, e-> col, e->height, e->width) && playerBullets[i].active && e->active) {
+			playerBullets[i].active = 0;
+			e->active = 0;
+			kills--;
+		}
+	}
+}
+
+void updateBullet(BULLET *b) {
+	if (b -> active) {
+		b -> row += b -> rdel;
+	} 
+	if (b -> row  + b -> height <= 0) {
+		b -> active = 0;
+	}
 }

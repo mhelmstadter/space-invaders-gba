@@ -70,7 +70,7 @@ initialize:
 	@ args = 0, pretend = 0, frame = 0
 	@ frame_needed = 0, uses_anonymous_args = 0
 	push	{r4, lr}
-	mov	r3, #16384
+	mov	r3, #32768
 	ldr	r4, .L8
 	ldr	r2, .L8+4
 	ldr	r1, .L8+8

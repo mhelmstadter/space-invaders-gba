@@ -874,6 +874,7 @@ void DMANow(int channel, volatile const void *src, volatile void *dst, unsigned 
 int collision(int rowA, int colA, int heightA, int widthA, int rowB, int colB, int heightB, int widthB);
 # 3 "game.c" 2
 # 1 "game.h" 1
+
 typedef struct {
  int row;
  int col;
@@ -898,31 +899,49 @@ typedef struct {
  int numFrames;
 } ENEMY;
 
+typedef struct {
+ int row;
+ int col;
+ int rdel;
+ int width;
+ int height;
+ int active;
+ int sheetCol;
+} BULLET;
+
 
 
 void initGame();
 void initPlayer();
+void initPlayerBullets();
 void drawGame();
 void drawPlayer();
 void drawEnemy();
+void drawBullet();
 void updateGame();
 void updatePlayer();
 void updateEnemy();
+void updateBullet();
+void shoot();
 void initEnemies();
 
 
 
 
-
 extern ENEMY enemies[25];
+
+
+extern BULLET playerBullets[5];
 # 4 "game.c" 2
 
 
 int lives;
+int kills;
 
 
 PLAYER player;
 ENEMY enemies[25];
+BULLET playerBullets[5];
 
 
 
@@ -931,6 +950,9 @@ OBJ_ATTR shadowOAM[128];
 void initGame() {
  initPlayer();
  initEnemies();
+ initPlayerBullets();
+ lives = 5;
+ kills = 25;
 }
 
 void initPlayer() {
@@ -979,6 +1001,18 @@ void initEnemies() {
  }
 }
 
+void initPlayerBullets() {
+
+ for (int i = 0; i < 5; i++) {
+  playerBullets[i].height = 8;
+  playerBullets[i].width = 8;
+  playerBullets[i].row = -playerBullets[i].height;
+  playerBullets[i].col = 0;
+  playerBullets[i].rdel = -2;
+  playerBullets[i].active = 0;
+ }
+}
+
 void drawGame() {
 
  drawPlayer();
@@ -989,6 +1023,13 @@ void drawGame() {
 
   drawEnemy(e, i + 6);
  }
+
+
+ for (int i = 0; i < 5; i++) {
+  BULLET *b = &playerBullets[i];
+  drawBullet(b, i + 1);
+ }
+
 }
 
 void drawPlayer() {
@@ -1009,6 +1050,17 @@ void drawEnemy(ENEMY* e, int index) {
  }
 }
 
+void drawBullet(BULLET* b, int index) {
+
+ if (b->active) {
+  shadowOAM[index].attr0 = b->row | (0<<13) | (0<<14);
+  shadowOAM[index].attr1 = b->col | (0<<14);
+  shadowOAM[index].attr2 = ((0)<<12) | ((0)*32+(4));
+ } else {
+  shadowOAM[index].attr0 = (2<<8);
+ }
+}
+
 
 void updateGame() {
 
@@ -1017,6 +1069,11 @@ void updateGame() {
  for (int i = 0; i < 25; i++) {
   ENEMY *e = &enemies[i];
   updateEnemy(e);
+ }
+
+ for (int i = 0; i < 5; i++) {
+  BULLET *b = &playerBullets[i];
+  updateBullet(b);
  }
 }
 
@@ -1027,6 +1084,28 @@ void updatePlayer() {
 
  if ((~((*(volatile unsigned short *)0x04000130)) & ((1<<5))) && player.col > 2) {
   player.col--;
+ }
+
+
+ if ((!(~(oldButtons)&((1<<0))) && (~buttons & ((1<<0)))) && player.bulletTimer >= 20) {
+  shoot();
+  player.bulletTimer = 0;
+ }
+
+ player.bulletTimer++;
+
+}
+
+void shoot() {
+
+ for (int i = 0; i < 5; i++) {
+
+  if (!playerBullets[i].active) {
+   playerBullets[i].row = player.row;
+   playerBullets[i].col = player.col + (player.width / 2) + (playerBullets[i].width / 2) - 7;
+   playerBullets[i].active = 1;
+   break;
+  }
  }
 }
 
@@ -1052,4 +1131,21 @@ void updateEnemy(ENEMY* e) {
  }
 
  e->col += e->cdel;
+
+ for (int i = 0; i < 5; i++) {
+  if (collision(playerBullets[i].row, playerBullets[i].col, playerBullets[i].height, playerBullets[i].width, e->row, e-> col, e->height, e->width) && playerBullets[i].active && e->active) {
+   playerBullets[i].active = 0;
+   e->active = 0;
+   kills--;
+  }
+ }
+}
+
+void updateBullet(BULLET *b) {
+ if (b -> active) {
+  b -> row += b -> rdel;
+ }
+ if (b -> row + b -> height <= 0) {
+  b -> active = 0;
+ }
 }

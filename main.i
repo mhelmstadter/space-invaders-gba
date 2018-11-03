@@ -1309,10 +1309,10 @@ extern const unsigned short losescreenPal[256];
 # 9 "main.c" 2
 # 1 "spritesheet.h" 1
 # 21 "spritesheet.h"
-extern const unsigned short spritesheetTiles[16384];
+extern const unsigned short spritesheetTiles[32768];
 
 
-extern const unsigned short spritesheetPal[256];
+extern const unsigned short spritesheetPal[16];
 # 10 "main.c" 2
 # 1 "galaxy.h" 1
 # 22 "galaxy.h"
@@ -1409,7 +1409,7 @@ int main() {
 
 void initialize() {
 
-    DMANow(3, spritesheetTiles, &((charblock *)0x6000000)[4], 32768/2);
+    DMANow(3, spritesheetTiles, &((charblock *)0x6000000)[4], 65536/2);
 
 
     DMANow(3, spritesheetPal, ((unsigned short *)0x5000200), 256);
@@ -1439,7 +1439,7 @@ void goToStart() {
 
     DMANow(3, startscreenTiles, &((charblock *)0x6000000)[0], 18368/2);
     DMANow(3, startscreenMap, &((screenblock *)0x6000000)[31], 2048/2);
-# 126 "main.c"
+
     state = START;
 }
 

@@ -117,27 +117,85 @@ initGame:
 	@ args = 0, pretend = 0, frame = 0
 	@ frame_needed = 0, uses_anonymous_args = 0
 	push	{r4, lr}
-	mov	r4, #16
-	mov	lr, #8
 	mov	r2, #2
+	mov	lr, #16
 	mov	ip, #150
 	mov	r0, #112
 	mov	r1, #20
-	ldr	r3, .L19
-	str	r4, [r3, #16]
-	str	lr, [r3, #20]
-	pop	{r4, lr}
+	mov	r4, #8
+	ldr	r3, .L21
+	str	lr, [r3, #16]
 	str	ip, [r3]
 	str	r0, [r3, #4]
 	str	r1, [r3, #24]
 	str	r2, [r3, #8]
 	str	r2, [r3, #12]
-	b	initEnemies
-.L20:
+	str	r4, [r3, #20]
+	bl	initEnemies
+	mov	r2, r4
+	mvn	lr, #7
+	mov	r1, #0
+	mvn	ip, #1
+	ldr	r3, .L21+4
+	add	r0, r3, #140
+.L18:
+	str	r2, [r3, #16]
+	str	r2, [r3, #12]
+	str	lr, [r3]
+	str	r1, [r3, #20]
+	stmib	r3, {r1, ip}
+	add	r3, r3, #28
+	cmp	r3, r0
+	bne	.L18
+	mov	r0, #5
+	mov	r2, #25
+	ldr	r1, .L21+8
+	ldr	r3, .L21+12
+	str	r0, [r1]
+	str	r2, [r3]
+	pop	{r4, lr}
+	bx	lr
+.L22:
 	.align	2
-.L19:
+.L21:
 	.word	player
+	.word	playerBullets
+	.word	lives
+	.word	kills
 	.size	initGame, .-initGame
+	.align	2
+	.global	initPlayerBullets
+	.syntax unified
+	.arm
+	.fpu softvfp
+	.type	initPlayerBullets, %function
+initPlayerBullets:
+	@ Function supports interworking.
+	@ args = 0, pretend = 0, frame = 0
+	@ frame_needed = 0, uses_anonymous_args = 0
+	str	lr, [sp, #-4]!
+	mov	r1, #8
+	mvn	lr, #7
+	mov	r2, #0
+	mvn	ip, #1
+	ldr	r3, .L27
+	add	r0, r3, #140
+.L24:
+	str	r1, [r3, #16]
+	str	r1, [r3, #12]
+	str	lr, [r3]
+	str	r2, [r3, #20]
+	stmib	r3, {r2, ip}
+	add	r3, r3, #28
+	cmp	r3, r0
+	bne	.L24
+	ldr	lr, [sp], #4
+	bx	lr
+.L28:
+	.align	2
+.L27:
+	.word	playerBullets
+	.size	initPlayerBullets, .-initPlayerBullets
 	.align	2
 	.global	drawGame
 	.syntax unified
@@ -149,35 +207,36 @@ drawGame:
 	@ args = 0, pretend = 0, frame = 0
 	@ frame_needed = 0, uses_anonymous_args = 0
 	mov	ip, #0
-	ldr	r0, .L28
+	ldr	r0, .L40
 	ldr	r3, [r0]
-	ldr	r1, .L28+4
+	ldr	r1, .L40+4
 	orr	r3, r3, #16384
-	push	{r4, r5, lr}
+	push	{r4, r5, r6, lr}
 	strh	r3, [r1]	@ movhi
-	ldr	r3, .L28+8
+	ldr	r3, .L40+8
 	ldr	r0, [r0, #4]
 	add	lr, r3, #1088
+	mov	r4, r1
 	mov	r2, r1
-	mov	r4, #512
+	mov	r5, #512
 	strh	r0, [r1, #2]	@ movhi
 	strh	ip, [r1, #4]	@ movhi
 	add	lr, lr, #12
-	b	.L24
-.L23:
+	b	.L32
+.L31:
 	add	r3, r3, #44
 	cmp	r3, lr
 	add	r2, r2, #8
-	beq	.L27
-.L24:
+	beq	.L39
+.L32:
 	ldr	r1, [r3, #24]
 	cmp	r1, #0
-	strheq	r4, [r2, #48]	@ movhi
-	beq	.L23
+	strheq	r5, [r2, #48]	@ movhi
+	beq	.L31
 	ldr	ip, [r3, #36]
 	ldr	r0, [r3, #28]
 	ldr	r1, [r3, #4]
-	ldr	r5, [r3]
+	ldr	r6, [r3]
 	add	ip, ip, #1
 	add	r3, r3, #44
 	add	r0, r0, ip, lsl #6
@@ -185,18 +244,36 @@ drawGame:
 	cmp	r3, lr
 	strh	r0, [r2, #52]	@ movhi
 	strh	r1, [r2, #50]	@ movhi
-	strh	r5, [r2, #48]	@ movhi
+	strh	r6, [r2, #48]	@ movhi
 	add	r2, r2, #8
-	bne	.L24
-.L27:
-	pop	{r4, r5, lr}
+	bne	.L32
+.L39:
+	mov	r0, #512
+	mov	lr, #4
+	ldr	r3, .L40+12
+	add	r1, r3, #140
+.L35:
+	ldr	r2, [r3, #20]
+	cmp	r2, #0
+	ldrne	ip, [r3]
+	ldrne	r2, [r3, #4]
+	add	r3, r3, #28
+	strhne	lr, [r4, #12]	@ movhi
+	strhne	ip, [r4, #8]	@ movhi
+	strhne	r2, [r4, #10]	@ movhi
+	strheq	r0, [r4, #8]	@ movhi
+	cmp	r3, r1
+	add	r4, r4, #8
+	bne	.L35
+	pop	{r4, r5, r6, lr}
 	bx	lr
-.L29:
+.L41:
 	.align	2
-.L28:
+.L40:
 	.word	player
 	.word	shadowOAM
 	.word	enemies
+	.word	playerBullets
 	.size	drawGame, .-drawGame
 	.align	2
 	.global	drawPlayer
@@ -210,18 +287,18 @@ drawPlayer:
 	@ frame_needed = 0, uses_anonymous_args = 0
 	@ link register save eliminated.
 	mov	r1, #0
-	ldr	r3, .L31
+	ldr	r3, .L43
 	ldr	r2, [r3]
 	ldr	r0, [r3, #4]
-	ldr	r3, .L31+4
+	ldr	r3, .L43+4
 	orr	r2, r2, #16384
 	strh	r2, [r3]	@ movhi
 	strh	r0, [r3, #2]	@ movhi
 	strh	r1, [r3, #4]	@ movhi
 	bx	lr
-.L32:
+.L44:
 	.align	2
-.L31:
+.L43:
 	.word	player
 	.word	shadowOAM
 	.size	drawPlayer, .-drawPlayer
@@ -237,17 +314,17 @@ drawEnemy:
 	@ frame_needed = 0, uses_anonymous_args = 0
 	ldr	r3, [r0, #24]
 	cmp	r3, #0
-	bne	.L40
+	bne	.L52
 	mov	r2, #512
-	ldr	r3, .L41
+	ldr	r3, .L53
 	lsl	r1, r1, #3
 	strh	r2, [r3, r1]	@ movhi
 	bx	lr
-.L40:
+.L52:
 	push	{r4, lr}
 	ldr	ip, [r0, #36]
 	ldr	r2, [r0, #4]
-	ldr	lr, .L41
+	ldr	lr, .L53
 	ldr	r3, [r0, #28]
 	ldr	r4, [r0]
 	lsl	r1, r1, #3
@@ -260,11 +337,98 @@ drawEnemy:
 	strh	r3, [r0, #4]	@ movhi
 	pop	{r4, lr}
 	bx	lr
-.L42:
+.L54:
 	.align	2
-.L41:
+.L53:
 	.word	shadowOAM
 	.size	drawEnemy, .-drawEnemy
+	.align	2
+	.global	drawBullet
+	.syntax unified
+	.arm
+	.fpu softvfp
+	.type	drawBullet, %function
+drawBullet:
+	@ Function supports interworking.
+	@ args = 0, pretend = 0, frame = 0
+	@ frame_needed = 0, uses_anonymous_args = 0
+	ldr	r3, [r0, #20]
+	cmp	r3, #0
+	bne	.L62
+	mov	r2, #512
+	ldr	r3, .L63
+	lsl	r1, r1, #3
+	strh	r2, [r3, r1]	@ movhi
+	bx	lr
+.L62:
+	mov	ip, #4
+	ldr	r2, .L63
+	str	lr, [sp, #-4]!
+	lsl	r1, r1, #3
+	ldr	lr, [r0]
+	ldr	r0, [r0, #4]
+	add	r3, r2, r1
+	strh	lr, [r2, r1]	@ movhi
+	strh	r0, [r3, #2]	@ movhi
+	strh	ip, [r3, #4]	@ movhi
+	ldr	lr, [sp], #4
+	bx	lr
+.L64:
+	.align	2
+.L63:
+	.word	shadowOAM
+	.size	drawBullet, .-drawBullet
+	.align	2
+	.global	shoot
+	.syntax unified
+	.arm
+	.fpu softvfp
+	.type	shoot, %function
+shoot:
+	@ Function supports interworking.
+	@ args = 0, pretend = 0, frame = 0
+	@ frame_needed = 0, uses_anonymous_args = 0
+	ldr	r0, .L76
+	mov	r2, r0
+	ldr	r1, [r2, #20]
+	cmp	r1, #0
+	mov	r3, #0
+	beq	.L75
+.L66:
+	add	r3, r3, #1
+	cmp	r3, #5
+	add	r2, r2, #28
+	bxeq	lr
+	ldr	r1, [r2, #20]
+	cmp	r1, #0
+	bne	.L66
+.L75:
+	push	{r4, r5, r6, lr}
+	mov	r4, #1
+	ldr	r5, .L76+4
+	rsb	r3, r3, r3, lsl #3
+	ldr	r2, [r5, #16]
+	lsl	r3, r3, #2
+	add	lr, r0, r3
+	add	ip, r2, r2, lsr #31
+	ldr	r2, [lr, #12]
+	add	r1, r2, r2, lsr #31
+	ldr	r2, [r5, #4]
+	add	r2, r2, ip, asr r4
+	ldr	r6, [r5]
+	add	r2, r2, r1, asr r4
+	sub	r2, r2, #7
+	str	r6, [r0, r3]
+	str	r2, [lr, #4]
+	str	r4, [lr, #20]
+	pop	{r4, r5, r6, lr}
+	bx	lr
+.L77:
+	.align	2
+.L76:
+	.word	playerBullets
+	.word	player
+	.size	shoot, .-shoot
 	.align	2
 	.global	updatePlayer
 	.syntax unified
@@ -275,34 +439,57 @@ updatePlayer:
 	@ Function supports interworking.
 	@ args = 0, pretend = 0, frame = 0
 	@ frame_needed = 0, uses_anonymous_args = 0
-	@ link register save eliminated.
-	ldr	r3, .L46
+	ldr	r3, .L90
 	ldrh	r3, [r3, #48]
 	tst	r3, #16
-	bne	.L44
-	ldr	r2, .L46+4
-	ldr	r1, [r2, #4]
-	ldr	r3, [r2, #16]
-	add	r3, r1, r3
+	push	{r4, lr}
+	ldr	r4, .L90+4
+	bne	.L79
+	ldr	r2, [r4, #4]
+	ldr	r3, [r4, #16]
+	add	r3, r2, r3
 	cmp	r3, #237
-	addle	r1, r1, #1
-	strle	r1, [r2, #4]
-.L44:
-	ldr	r3, .L46
+	addle	r2, r2, #1
+	strle	r2, [r4, #4]
+.L79:
+	ldr	r3, .L90
 	ldrh	r3, [r3, #48]
 	tst	r3, #32
-	bxne	lr
-	ldr	r2, .L46+4
-	ldr	r3, [r2, #4]
+	bne	.L80
+	ldr	r3, [r4, #4]
 	cmp	r3, #2
 	subgt	r3, r3, #1
-	strgt	r3, [r2, #4]
+	strgt	r3, [r4, #4]
+.L80:
+	ldr	r3, .L90+8
+	ldrh	r3, [r3]
+	tst	r3, #1
+	ldr	r3, [r4, #24]
+	beq	.L89
+	ldr	r2, .L90+12
+	ldrh	r2, [r2]
+	tst	r2, #1
+	bne	.L89
+	cmp	r3, #19
+	bgt	.L84
+.L89:
+	add	r3, r3, #1
+	str	r3, [r4, #24]
+	pop	{r4, lr}
 	bx	lr
-.L47:
+.L84:
+	bl	shoot
+	mov	r3, #1
+	str	r3, [r4, #24]
+	pop	{r4, lr}
+	bx	lr
+.L91:
 	.align	2
-.L46:
+.L90:
 	.word	67109120
 	.word	player
+	.word	oldButtons
+	.word	buttons
 	.size	updatePlayer, .-updatePlayer
 	.align	2
 	.global	updateEnemy
@@ -315,57 +502,100 @@ updateEnemy:
 	@ args = 0, pretend = 0, frame = 0
 	@ frame_needed = 0, uses_anonymous_args = 0
 	ldr	r2, [r0, #32]
-	ldr	r3, .L56
-	push	{r4, r5, lr}
-	smull	r4, r5, r2, r3
+	ldr	r3, .L112
+	push	{r4, r5, r6, r7, r8, r9, r10, lr}
+	mov	r4, r0
+	smull	r0, r1, r2, r3
 	asr	r3, r2, #31
-	rsb	r3, r3, r5, asr #3
+	rsb	r3, r3, r1, asr #3
 	add	r3, r3, r3, lsl #2
 	subs	r3, r2, r3, lsl #2
-	bne	.L49
-	ldr	r1, [r0, #40]
-	ldr	ip, [r0, #36]
+	sub	sp, sp, #16
+	bne	.L93
+	add	r0, r4, #36
+	ldm	r0, {r0, r1}
 	sub	r1, r1, #1
-	cmp	ip, r1
-	addlt	ip, ip, #1
-	strlt	ip, [r0, #36]
-	strge	r3, [r0, #36]
-.L49:
-	ldr	r3, .L56+4
+	cmp	r0, r1
+	addlt	r0, r0, #1
+	strlt	r0, [r4, #36]
+	strge	r3, [r4, #36]
+.L93:
+	ldr	r3, .L112+4
 	add	r2, r2, #1
-	add	lr, r3, #1088
-	str	r2, [r0, #32]
-	ldr	r1, [r0, #12]
-	add	lr, lr, #12
-.L53:
+	add	ip, r3, #1088
+	str	r2, [r4, #32]
+	ldr	r1, [r4, #12]
+	ldr	lr, [r4]
+	add	ip, ip, #12
+.L97:
 	ldr	r2, [r3, #4]
 	cmp	r2, #0
-	ble	.L51
-	ldr	ip, [r3, #16]
-	add	r2, r2, ip
+	ble	.L95
+	ldr	r0, [r3, #16]
+	add	r2, r2, r0
 	cmp	r2, #239
-	ble	.L52
-.L51:
-	ldr	r2, [r0]
-	ldr	ip, [r0, #8]
+	ble	.L96
+.L95:
+	ldr	r2, [r4, #8]
 	rsb	r1, r1, #0
-	add	r2, r2, ip
-	str	r1, [r0, #12]
-	str	r2, [r0]
-.L52:
+	add	lr, lr, r2
+	str	r1, [r4, #12]
+	str	lr, [r4]
+.L96:
 	add	r3, r3, #44
-	cmp	r3, lr
-	bne	.L53
-	ldr	r3, [r0, #4]
-	add	r1, r3, r1
-	str	r1, [r0, #4]
-	pop	{r4, r5, lr}
+	cmp	r3, ip
+	bne	.L97
+	mov	r8, #0
+	ldr	ip, [r4, #4]
+	ldr	r5, .L112+8
+	add	ip, r1, ip
+	str	ip, [r4, #4]
+	ldr	r7, .L112+12
+	ldr	r9, .L112+16
+	add	r6, r5, #140
+.L100:
+	ldr	r10, [r4, #16]
+	str	ip, [sp, #4]
+	ldr	ip, [r4, #20]
+	ldr	r3, [r5, #12]
+	ldr	r2, [r5, #16]
+	ldm	r5, {r0, r1}
+	str	lr, [sp]
+	str	r10, [sp, #12]
+	str	ip, [sp, #8]
+	mov	lr, pc
+	bx	r7
+	cmp	r0, #0
+	beq	.L98
+	ldr	r3, [r5, #20]
+	cmp	r3, #0
+	beq	.L98
+	ldr	r3, [r4, #24]
+	cmp	r3, #0
+	ldrne	r3, [r9]
+	subne	r3, r3, #1
+	strne	r8, [r5, #20]
+	strne	r3, [r9]
+	strne	r8, [r4, #24]
+.L98:
+	add	r5, r5, #28
+	cmp	r5, r6
+	ldrne	ip, [r4, #4]
+	ldrne	lr, [r4]
+	bne	.L100
+.L92:
+	add	sp, sp, #16
+	@ sp needed
+	pop	{r4, r5, r6, r7, r8, r9, r10, lr}
 	bx	lr
-.L57:
+.L113:
 	.align	2
-.L56:
+.L112:
 	.word	1717986919
 	.word	enemies
+	.word	playerBullets
+	.word	collision
+	.word	kills
 	.size	updateEnemy, .-updateEnemy
 	.align	2
 	.global	updateGame
@@ -379,24 +609,68 @@ updateGame:
 	@ frame_needed = 0, uses_anonymous_args = 0
 	push	{r4, r5, r6, lr}
 	bl	updatePlayer
-	ldr	r4, .L62
+	ldr	r4, .L125
 	add	r5, r4, #1088
 	add	r5, r5, #12
-.L59:
+.L115:
 	mov	r0, r4
 	add	r4, r4, #44
 	bl	updateEnemy
 	cmp	r4, r5
-	bne	.L59
+	bne	.L115
+	mov	ip, #0
+	ldr	r3, .L125+4
+	add	r0, r3, #140
+.L118:
+	ldr	r2, [r3, #20]
+	cmp	r2, #0
+	ldrne	r1, [r3, #8]
+	ldr	r2, [r3]
+	addne	r2, r2, r1
+	ldr	r1, [r3, #16]
+	strne	r2, [r3]
+	add	r2, r2, r1
+	cmp	r2, #0
+	strle	ip, [r3, #20]
+	add	r3, r3, #28
+	cmp	r3, r0
+	bne	.L118
 	pop	{r4, r5, r6, lr}
 	bx	lr
-.L63:
+.L126:
 	.align	2
-.L62:
+.L125:
 	.word	enemies
+	.word	playerBullets
 	.size	updateGame, .-updateGame
+	.align	2
+	.global	updateBullet
+	.syntax unified
+	.arm
+	.fpu softvfp
+	.type	updateBullet, %function
+updateBullet:
+	@ Function supports interworking.
+	@ args = 0, pretend = 0, frame = 0
+	@ frame_needed = 0, uses_anonymous_args = 0
+	@ link register save eliminated.
+	ldr	r3, [r0, #20]
+	cmp	r3, #0
+	ldrne	r2, [r0, #8]
+	ldr	r3, [r0]
+	addne	r3, r3, r2
+	ldr	r2, [r0, #16]
+	strne	r3, [r0]
+	add	r3, r3, r2
+	cmp	r3, #0
+	movle	r3, #0
+	strle	r3, [r0, #20]
+	bx	lr
+	.size	updateBullet, .-updateBullet
 	.comm	shadowOAM,1024,4
+	.comm	playerBullets,140,4
 	.comm	enemies,1100,4
 	.comm	player,28,4
+	.comm	kills,4,4
 	.comm	lives,4,4
 	.ident	"GCC: (devkitARM release 47) 7.1.0"

@@ -115,14 +115,6 @@ void goToStart() {
     DMANow(3, startscreenTiles, &CHARBLOCK[0], startscreenTilesLen/2);
     DMANow(3, startscreenMap, &SCREENBLOCK[31], startscreenMapLen/2);
 
-    // //// BACKGROUND 1
-    // // Set background 1 control register
-    // REG_BG1CNT = BG_SIZE_SMALL | BG_CHARBLOCK(1) | BG_SCREENBLOCK(30);
-    // // Load tiles to charblock and map to screenblock
-    // DMANow(3, galaxyTiles, &CHARBLOCK[0], galaxyTilesLen/2);
-    // DMANow(3, galaxyMap, &SCREENBLOCK[31], galaxyMapLen/2);
-
-
     state = START;
 }
 
